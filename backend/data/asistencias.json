@@ -1,0 +1,182 @@
+[
+    {
+        "employee": "11201165",
+        "tipo": "entrada",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp_dispositivo": "2026-03-16T18:35:31.086Z",
+        "timestamp_servidor": "2026-03-16T13:35:31.110665",
+        "photo_name": "11201165_entrada_20260316_133531.png",
+        "photo_path": "data\\photos\\11201165_entrada_20260316_133531.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "entrada",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp_dispositivo": "2026-03-16T18:35:43.870Z",
+        "timestamp_servidor": "2026-03-16T13:35:43.893585",
+        "photo_name": "11201165_entrada_20260316_133543.png",
+        "photo_path": "data\\photos\\11201165_entrada_20260316_133543.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "salida",
+        "lat": "4.6748835108654925",
+        "lon": "-74.07420632184339",
+        "timestamp_dispositivo": "2026-03-16T18:48:56.389Z",
+        "timestamp_servidor": "2026-03-16T13:48:56.416358",
+        "photo_name": "11201165_salida_20260316_134856.png",
+        "photo_path": "data\\photos\\11201165_salida_20260316_134856.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "entrada",
+        "lat": "4.6748835108654925",
+        "lon": "-74.07420632184339",
+        "timestamp_dispositivo": "2026-03-16T18:49:04.085Z",
+        "timestamp_servidor": "2026-03-16T13:49:04.109600",
+        "photo_name": "11201165_entrada_20260316_134904.png",
+        "photo_path": "data\\photos\\11201165_entrada_20260316_134904.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "salida",
+        "lat": "4.6748835108654925",
+        "lon": "-74.07420632184339",
+        "timestamp_dispositivo": "2026-03-16T19:32:58.796Z",
+        "timestamp_servidor": "2026-03-16T14:32:58.808406",
+        "photo_name": "11201165_salida_20260316_143258.png",
+        "photo_path": "data/photos\\11201165_salida_20260316_143258.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "entrada",
+        "lat": "4.6748835108654925",
+        "lon": "-74.07420632184339",
+        "timestamp_dispositivo": "2026-03-16T19:33:09.396Z",
+        "timestamp_servidor": "2026-03-16T14:33:09.407636",
+        "photo_name": "11201165_entrada_20260316_143309.png",
+        "photo_path": "data/photos\\11201165_entrada_20260316_143309.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "salida",
+        "lat": "4.6748835108654925",
+        "lon": "-74.07420632184339",
+        "timestamp_dispositivo": "2026-03-16T19:33:24.620Z",
+        "timestamp_servidor": "2026-03-16T14:33:24.634184",
+        "photo_name": "11201165_salida_20260316_143324.png",
+        "photo_path": "data/photos\\11201165_salida_20260316_143324.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "entrada",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp_dispositivo": "2026-03-16T15:08:42.626249",
+        "timestamp_servidor": "2026-03-16T15:08:42.627258",
+        "photo_name": "11201165_entrada_20260316_150842.png",
+        "photo_path": "data/photos\\11201165_entrada_20260316_150842.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "salida",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp_dispositivo": "2026-03-16T15:09:12.376596",
+        "timestamp_servidor": "2026-03-16T15:09:12.377525",
+        "photo_name": "11201165_salida_20260316_150912.png",
+        "photo_path": "data/photos\\11201165_salida_20260316_150912.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "entrada",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp_dispositivo": "2026-03-16T15:20:08.890541",
+        "timestamp_servidor": "2026-03-16T15:20:08.894374",
+        "photo_name": "11201165_entrada_20260316_152008.png",
+        "photo_path": "data/photos\\11201165_entrada_20260316_152008.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "salida",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp": "2026-03-16T15:23:09.447368",
+        "photo": "11201165_salida_20260316_152309.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "entrada",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp": "2026-03-16T15:34:38.702259",
+        "photo": "11201165_entrada_20260316_153438.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "entrada",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp": "2026-03-16T15:39:09.275369",
+        "photo": "11201165_entrada_20260316_153909.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "salida",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp": "2026-03-16T15:42:11.132539",
+        "photo": "11201165_salida_20260316_154211.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "entrada",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp": "2026-03-16T15:45:19.259976",
+        "photo": "11201165_entrada_20260316_154519.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "salida",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp": "2026-03-16T15:46:41.482717",
+        "photo": "11201165_salida_20260316_154641.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "entrada",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp": "2026-03-16T15:47:10.831020",
+        "photo": "11201165_entrada_20260316_154710.png"
+    },
+    {
+        "employee": "1013611758",
+        "tipo": "entrada",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp": "2026-03-16T15:54:54.996997",
+        "photo": "1013611758_entrada_20260316_155454.png"
+    },
+    {
+        "employee": "1013611758",
+        "tipo": "salida",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp": "2026-03-16T15:55:28.134247",
+        "photo": "1013611758_salida_20260316_155528.png"
+    },
+    {
+        "employee": "11201165",
+        "tipo": "salida",
+        "lat": "4.6748245",
+        "lon": "-74.073967",
+        "timestamp": "2026-03-16T15:56:11.590428",
+        "photo": "11201165_salida_20260316_155611.png"
+    }
+]
