@@ -1,194 +1,138 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import "./App.css";
 
 function App() {
-
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-
   const [employee, setEmployee] = useState("");
-  const [photo, setPhoto] = useState(null);
-  const [location, setLocation] = useState(null);
-  const [historial, setHistorial] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const openCamera = async () => {
+  // 1. Iniciar cámara al cargar la app
+  useEffect(() => {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: "user" } })
+        .then((stream) => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        })
+        .catch((err) => {
+          console.error("Error cámara:", err);
+          alert("Por favor, permite el acceso a la cámara para marcar asistencia.");
+        });
+    }
+  }, []);
 
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-
-    videoRef.current.srcObject = stream;
-
+  // 2. Función para obtener GPS
+  const obtenerUbicacion = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject("Tu navegador no soporta geolocalización");
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          resolve({
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error("Error GPS:", error);
+          reject("Debes activar el GPS y dar permisos de ubicación.");
+        },
+        { enableHighAccuracy: true }
+      );
+    });
   };
 
-  const takePhoto = () => {
-
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
+  // 3. Función para capturar la foto del video
+  const capturarFoto = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
     const ctx = canvas.getContext("2d");
-
-    ctx.drawImage(video, 0, 0);
-
-    const image = canvas.toDataURL("image/png");
-
-    setPhoto(image);
-
+    ctx.drawImage(videoRef.current, 0, 0);
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.8);
+    });
   };
 
-  const getLocation = () => {
+  // 4. Lógica de registro (Frontend -> Backend -> Odoo)
+  const registrar = async (tipo) => {
+    if (!employee) {
+      alert("Por favor, ingrese su número de documento.");
+      return;
+    }
 
-    navigator.geolocation.getCurrentPosition((position) => {
+    setLoading(true);
 
-      setLocation({
-        lat: position.coords.latitude,
-        lon: position.coords.longitude
+    try {
+      const ubicacion = await obtenerUbicacion();
+      const fotoBlob = await capturarFoto();
+
+      // Construcción del FormData (idéntico a los Form/File de tu FastAPI)
+      const formData = new FormData();
+      formData.append("employee", employee);
+      formData.append("tipo", tipo);
+      formData.append("lat", ubicacion.lat.toString());
+      formData.append("lon", ubicacion.lon.toString());
+      formData.append("photo", fotoBlob, "selfie.jpg");
+
+      const res = await fetch("https://asistencia-api-s0ut.onrender.com/registrar", {
+        method: "POST",
+        body: formData,
       });
 
-    });
+      const data = await res.json();
 
-  };
+      if (!res.ok) {
+        throw new Error(data.detail || "Error en el servidor");
+      }
 
-  const register = async (type) => {
-
-    if (!employee) {
-      alert("Ingrese el ID del empleado");
-      return;
+      alert("✅ " + data.mensaje);
+    } catch (e) {
+      alert("❌ Error: " + e.message);
+    } finally {
+      setLoading(false);
     }
-
-    if (!location) {
-      alert("Debe activar el GPS primero");
-      return;
-    }
-
-    if (!photo) {
-      alert("Debe tomar una foto primero");
-      return;
-    }
-
-    const formData = new FormData();
-
-    const timestamp = new Date().toISOString();
-
-    formData.append("employee", employee);
-    formData.append("tipo", type);
-    formData.append("lat", location.lat);
-    formData.append("lon", location.lon);
-    formData.append("timestamp", timestamp);
-
-    const blob = await fetch(photo).then(r => r.blob());
-
-    formData.append("photo", blob, "photo.png");
-
-    const response = await fetch("http://127.0.0.1:8000/registrar", {
-      method: "POST",
-      body: formData
-    });
-
-    const result = await response.json();
-
-    alert(result.message);
-
-  };
-
-  const cargarHistorial = async () => {
-
-    if (!employee) {
-      alert("Ingrese el ID del empleado");
-      return;
-    }
-
-    const response = await fetch(`http://127.0.0.1:8000/historial/${employee}`);
-
-    const data = await response.json();
-
-    setHistorial(data);
-
   };
 
   return (
-
-    <div style={{ textAlign: "center", marginTop: "40px" }}>
-
-      <h1>Control de Asistencia</h1>
+    <div className="container">
+      <h1>📍 Control Terracampo</h1>
+      <p>Registro de asistencia</p>
 
       <input
-        placeholder="ID empleado"
+        type="text"
+        placeholder="Número de Documento"
         value={employee}
         onChange={(e) => setEmployee(e.target.value)}
+        className="input-documento"
       />
 
-      <br /><br />
+      <div className="video-container">
+        <video ref={videoRef} autoPlay playsInline className="video" />
+      </div>
 
-      <button onClick={openCamera}>Abrir cámara</button>
+      <div className="button-group">
+        <button 
+          className="btn-entrada"
+          onClick={() => registrar("entrada")} 
+          disabled={loading}
+        >
+          {loading ? "Procesando..." : "Marcar Entrada"}
+        </button>
 
-      <button onClick={takePhoto}>Tomar foto</button>
-
-      <br /><br />
-
-      <video ref={videoRef} autoPlay width="300"></video>
-
-      <canvas ref={canvasRef} style={{ display: "none" }}></canvas>
-
-      {photo && (
-        <>
-          <p>Foto capturada:</p>
-          <img src={photo} width="200" />
-        </>
-      )}
-
-      <br /><br />
-
-      <button onClick={getLocation}>Obtener ubicación</button>
-
-      <br /><br />
-
-      <button onClick={() => register("entrada")}>Registrar Entrada</button>
-
-      <button onClick={() => register("salida")}>Registrar Salida</button>
-
-      <br /><br />
-
-      <button onClick={cargarHistorial}>Ver Historial</button>
-
-      {location && (
-        <>
-          <p>Latitud: {location.lat}</p>
-          <p>Longitud: {location.lon}</p>
-        </>
-      )}
-
-      <hr />
-
-      <h2>Historial</h2>
-
-      {historial.map((item, index) => (
-
-        <div key={index} style={{
-          border: "1px solid gray",
-          padding: "10px",
-          margin: "10px"
-        }}>
-
-          <p><b>Tipo:</b> {item.tipo}</p>
-
-          <p><b>Hora servidor:</b> {item.timestamp_servidor}</p>
-
-          <p><b>GPS:</b> {item.lat}, {item.lon}</p>
-
-          <img
-            src={`http://127.0.0.1:8000/${item.photo_path}`}
-            width="150"
-          />
-
-        </div>
-
-      ))}
-
+        <button 
+          className="btn-salida"
+          onClick={() => registrar("salida")} 
+          disabled={loading}
+        >
+          {loading ? "Procesando..." : "Marcar Salida"}
+        </button>
+      </div>
     </div>
-
   );
-
 }
 
 export default App;
