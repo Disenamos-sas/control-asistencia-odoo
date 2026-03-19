@@ -76,9 +76,7 @@ function App() {
       formData.append("lon", ubicacion.lon.toString());
       formData.append("photo", fotoBlob, "selfie.jpg");
 
-      const res = await fetch(
-        "https://control-asistencia-odoo-1.onrender.com/registrar",
-        {
+      const res = await fetch("https://dco-backend-asistencia.onrender.com/registrar", {
           method: "POST",
           body: formData,
         }
