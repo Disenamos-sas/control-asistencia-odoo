@@ -33,16 +33,16 @@ def get_odoo_connection():
         common = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/common")
         uid = common.authenticate(ODOO_DB, ODOO_USER, ODOO_API_KEY, {})
         if not uid:
-            return None, None
+            raise Exception("Credenciales inválidas en Odoo")
         models = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/object")
         return uid, models
-    except:
-        return None, None
+    except Exception as e:
+        raise Exception(f"Error conexión Odoo: {str(e)}")
 
 # ===============================
 # ARCHIVO HASH (ANTI FRAUDE)
 # ===============================
-HASH_FILE = "/tmp/hashes.json" # Cambiado a /tmp para que funcione mejor en Render
+HASH_FILE = "/tmp/hashes.json"
 
 if not os.path.exists(HASH_FILE):
     with open(HASH_FILE, "w") as f:
@@ -50,24 +50,23 @@ if not os.path.exists(HASH_FILE):
 
 def validar_imagen_unica(base64_img):
     hash_img = hashlib.md5(base64_img.encode()).hexdigest()
-    try:
-        with open(HASH_FILE, "r") as f:
-            hashes = json.load(f)
-        if hash_img in hashes:
-            raise HTTPException(400, "❌ Imagen ya utilizada (posible fraude)")
-        hashes.append(hash_img)
-        with open(HASH_FILE, "w") as f:
-            json.dump(hashes, f)
-    except:
-        pass # Evita que el sistema se bloquee si falla el archivo de hashes
+
+    with open(HASH_FILE, "r") as f:
+        hashes = json.load(f)
+
+    if hash_img in hashes:
+        raise HTTPException(status_code=400, detail="Imagen ya utilizada (posible fraude)")
+
+    hashes.append(hash_img)
+
+    with open(HASH_FILE, "w") as f:
+        json.dump(hashes, f)
 
 # ===============================
 # REGISTRO EN ODOO
 # ===============================
 def registrar_asistencia_odoo(employee_doc, tipo, lat, lon, photo_base64):
     uid, models = get_odoo_connection()
-    if not uid:
-        raise Exception("Error de conexión con Odoo")
 
     empleados = models.execute_kw(
         ODOO_DB, uid, ODOO_API_KEY,
@@ -94,15 +93,17 @@ def registrar_asistencia_odoo(employee_doc, tipo, lat, lon, photo_base64):
                 'x_studio_foto_de_asistencia': photo_base64
             }]
         )
+
     elif tipo == "salida":
         asistencias = models.execute_kw(
             ODOO_DB, uid, ODOO_API_KEY,
             'hr.attendance', 'search',
             [[['employee_id', '=', employee_id], ['check_out', '=', False]]]
         )
+
         if not asistencias:
             raise Exception("No hay asistencia abierta para cerrar")
-        
+
         models.execute_kw(
             ODOO_DB, uid, ODOO_API_KEY,
             'hr.attendance', 'write',
@@ -114,8 +115,11 @@ def registrar_asistencia_odoo(employee_doc, tipo, lat, lon, photo_base64):
             }]
         )
 
+    else:
+        raise Exception("Tipo inválido (entrada/salida)")
+
 # ===============================
-# ENDPOINTS
+# ENDPOINT PRINCIPAL
 # ===============================
 @app.post("/registrar")
 async def registrar(
@@ -127,13 +131,39 @@ async def registrar(
 ):
     try:
         contents = await photo.read()
-        photo_base64 = base64.b64encode(contents).decode("utf-8")
-        validar_imagen_unica(photo_base64)
-        registrar_asistencia_odoo(employee, tipo.lower(), float(lat), float(lon), photo_base64)
-        return {"status": "ok", "mensaje": f"Asistencia {tipo} registrada correctamente para D&CO"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
+        if not contents:
+            raise HTTPException(status_code=400, detail="Imagen vacía")
+
+        photo_base64 = base64.b64encode(contents).decode("utf-8")
+
+        validar_imagen_unica(photo_base64)
+
+        registrar_asistencia_odoo(
+            employee,
+            tipo.lower(),
+            float(lat),
+            float(lon),
+            photo_base64
+        )
+
+        return {
+            "status": "ok",
+            "mensaje": f"Asistencia {tipo} registrada correctamente para D&CO"
+        }
+
+    except HTTPException as he:
+        raise he
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno: {str(e)}"
+        )
+
+# ===============================
+# HEALTH CHECK
+# ===============================
 @app.get("/")
 def home():
     return {"status": "ok", "mensaje": "API D&CO Activa"}
