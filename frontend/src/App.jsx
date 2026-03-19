@@ -66,7 +66,7 @@ function App() {
       formData.append("photo", fotoBlob, "selfie.jpg");
 
       // CAMBIO CLAVE: Dirección del nuevo motor D&CO
-      const res = await fetch("https://control-asistencia-odoo-1.onrender.com/registrar", {
+      const res = await const res = await fetch("https://control-asistencia-odoo-1.onrender.com/registrar", {
         method: "POST",
         body: formData,
       });
