@@ -1,51 +1,40 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
+import logo from "./assets/logo.jpg"; // Asegúrate de que el logo se llame logo.jpg en la carpeta assets
 
 function App() {
   const videoRef = useRef(null);
   const [employee, setEmployee] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 1. Iniciar cámara al cargar la app
+  // 1. Iniciar cámara
   useEffect(() => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       navigator.mediaDevices
         .getUserMedia({ video: { facingMode: "user" } })
         .then((stream) => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
+          if (videoRef.current) videoRef.current.srcObject = stream;
         })
         .catch((err) => {
           console.error("Error cámara:", err);
-          alert("Por favor, permite el acceso a la cámara para marcar asistencia.");
+          alert("Por favor, permite el acceso a la cámara.");
         });
     }
   }, []);
 
-  // 2. Función para obtener GPS
+  // 2. Obtener GPS
   const obtenerUbicacion = () => {
     return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject("Tu navegador no soporta geolocalización");
-      }
+      if (!navigator.geolocation) reject("Navegador no soporta GPS");
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          resolve({
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude,
-          });
-        },
-        (error) => {
-          console.error("Error GPS:", error);
-          reject("Debes activar el GPS y dar permisos de ubicación.");
-        },
+        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        (error) => reject("Activa el GPS y da permisos de ubicación."),
         { enableHighAccuracy: true }
       );
     });
   };
 
-  // 3. Función para capturar la foto del video
+  // 3. Capturar Foto
   const capturarFoto = () => {
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
@@ -57,20 +46,18 @@ function App() {
     });
   };
 
-  // 4. Lógica de registro (Frontend -> Backend -> Odoo)
+  // 4. Registro Sincronizado con D&CO
   const registrar = async (tipo) => {
     if (!employee) {
-      alert("Por favor, ingrese su número de documento.");
+      alert("Ingrese su número de documento.");
       return;
     }
-
     setLoading(true);
 
     try {
       const ubicacion = await obtenerUbicacion();
       const fotoBlob = await capturarFoto();
 
-      // Construcción del FormData (idéntico a los Form/File de tu FastAPI)
       const formData = new FormData();
       formData.append("employee", employee);
       formData.append("tipo", tipo);
@@ -78,16 +65,14 @@ function App() {
       formData.append("lon", ubicacion.lon.toString());
       formData.append("photo", fotoBlob, "selfie.jpg");
 
-      const res = await fetch("https://asistencia-api-s0ut.onrender.com/registrar", {
+      // CAMBIO CLAVE: Dirección del nuevo motor D&CO
+      const res = await fetch("https://control-asistencia-odoo-1.onrender.com/registrar", {
         method: "POST",
         body: formData,
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || "Error en el servidor");
-      }
+      if (!res.ok) throw new Error(data.detail || "Error en el servidor");
 
       alert("✅ " + data.mensaje);
     } catch (e) {
@@ -99,8 +84,11 @@ function App() {
 
   return (
     <div className="container">
-      <h1>📍 Control Terracampo</h1>
-      <p>Registro de asistencia</p>
+      {/* Logo de la empresa */}
+      <img src={logo} alt="Logo D&CO" className="logo-empresa" style={{ width: "180px", marginBottom: "20px" }} />
+      
+      <h1>📍 Control D&CO</h1>
+      <p>Diseñamos y Construimos S.A.S.</p>
 
       <input
         type="text"
@@ -115,19 +103,11 @@ function App() {
       </div>
 
       <div className="button-group">
-        <button 
-          className="btn-entrada"
-          onClick={() => registrar("entrada")} 
-          disabled={loading}
-        >
+        <button className="btn-entrada" onClick={() => registrar("entrada")} disabled={loading}>
           {loading ? "Procesando..." : "Marcar Entrada"}
         </button>
 
-        <button 
-          className="btn-salida"
-          onClick={() => registrar("salida")} 
-          disabled={loading}
-        >
+        <button className="btn-salida" onClick={() => registrar("salida")} disabled={loading} style={{backgroundColor: "#ff4d4d"}}>
           {loading ? "Procesando..." : "Marcar Salida"}
         </button>
       </div>
