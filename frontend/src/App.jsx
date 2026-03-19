@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
-import logo from "./assets/logo.jpg"; // Asegúrate de que el logo se llame logo.jpg en la carpeta assets
+import logo from "./assets/hero.png";
 
 function App() {
   const videoRef = useRef(null);
@@ -25,10 +25,18 @@ function App() {
   // 2. Obtener GPS
   const obtenerUbicacion = () => {
     return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) reject("Navegador no soporta GPS");
+      if (!navigator.geolocation) {
+        reject(new Error("Navegador no soporta GPS"));
+        return;
+      }
+
       navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        (error) => reject("Activa el GPS y da permisos de ubicación."),
+        (pos) =>
+          resolve({
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+          }),
+        () => reject(new Error("Activa el GPS y da permisos de ubicación.")),
         { enableHighAccuracy: true }
       );
     });
@@ -39,19 +47,22 @@ function App() {
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
+
     const ctx = canvas.getContext("2d");
     ctx.drawImage(videoRef.current, 0, 0);
+
     return new Promise((resolve) => {
       canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.8);
     });
   };
 
-  // 4. Registro Sincronizado con D&CO
+  // 4. Registrar asistencia
   const registrar = async (tipo) => {
     if (!employee) {
       alert("Ingrese su número de documento.");
       return;
     }
+
     setLoading(true);
 
     try {
@@ -65,17 +76,28 @@ function App() {
       formData.append("lon", ubicacion.lon.toString());
       formData.append("photo", fotoBlob, "selfie.jpg");
 
-      // CAMBIO CLAVE: Dirección del nuevo motor D&CO
-      const res = await const res = await fetch("https://control-asistencia-odoo-1.onrender.com/registrar", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        "https://control-asistencia-odoo-1.onrender.com/registrar",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Error en el servidor");
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Respuesta inválida del servidor");
+      }
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Error en el servidor");
+      }
 
       alert("✅ " + data.mensaje);
     } catch (e) {
+      console.error(e);
       alert("❌ Error: " + e.message);
     } finally {
       setLoading(false);
@@ -84,9 +106,14 @@ function App() {
 
   return (
     <div className="container">
-      {/* Logo de la empresa */}
-      <img src={logo} alt="Logo D&CO" className="logo-empresa" style={{ width: "180px", marginBottom: "20px" }} />
-      
+      {/* Logo */}
+      <img
+        src={logo}
+        alt="Logo D&CO"
+        className="logo-empresa"
+        style={{ width: "180px", marginBottom: "20px" }}
+      />
+
       <h1>📍 Control D&CO</h1>
       <p>Diseñamos y Construimos S.A.S.</p>
 
@@ -103,11 +130,20 @@ function App() {
       </div>
 
       <div className="button-group">
-        <button className="btn-entrada" onClick={() => registrar("entrada")} disabled={loading}>
+        <button
+          className="btn-entrada"
+          onClick={() => registrar("entrada")}
+          disabled={loading}
+        >
           {loading ? "Procesando..." : "Marcar Entrada"}
         </button>
 
-        <button className="btn-salida" onClick={() => registrar("salida")} disabled={loading} style={{backgroundColor: "#ff4d4d"}}>
+        <button
+          className="btn-salida"
+          onClick={() => registrar("salida")}
+          disabled={loading}
+          style={{ backgroundColor: "#ff4d4d" }}
+        >
           {loading ? "Procesando..." : "Marcar Salida"}
         </button>
       </div>
