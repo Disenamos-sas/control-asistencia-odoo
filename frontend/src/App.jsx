@@ -7,7 +7,11 @@ function App() {
   const [employee, setEmployee] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 1. Iniciar cámara
+  const API_URL = "https://dco-backend-asistencia.onrender.com/registrar";
+
+  // ===============================
+  // 1. INICIAR CÁMARA
+  // ===============================
   useEffect(() => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       navigator.mediaDevices
@@ -22,7 +26,9 @@ function App() {
     }
   }, []);
 
-  // 2. Obtener GPS
+  // ===============================
+  // 2. OBTENER GPS
+  // ===============================
   const obtenerUbicacion = () => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -42,7 +48,9 @@ function App() {
     });
   };
 
-  // 3. Capturar Foto
+  // ===============================
+  // 3. CAPTURAR FOTO
+  // ===============================
   const capturarFoto = () => {
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
@@ -56,7 +64,37 @@ function App() {
     });
   };
 
-  // 4. Registrar asistencia
+  // ===============================
+  // 🔥 4. FETCH CON REINTENTO (CLAVE)
+  // ===============================
+  const fetchConReintento = async (formData) => {
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Primer intento falló");
+
+      return res;
+    } catch (error) {
+      console.log("⏳ Backend dormido... reintentando en 5 segundos");
+
+      // Espera 5 segundos para que Render despierte
+      await new Promise((r) => setTimeout(r, 5000));
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      return res;
+    }
+  };
+
+  // ===============================
+  // 5. REGISTRAR ASISTENCIA
+  // ===============================
   const registrar = async (tipo) => {
     if (!employee) {
       alert("Ingrese su número de documento.");
@@ -76,11 +114,8 @@ function App() {
       formData.append("lon", ubicacion.lon.toString());
       formData.append("photo", fotoBlob, "selfie.jpg");
 
-      const res = await fetch("https://dco-backend-asistencia.onrender.com/registrar", {
-          method: "POST",
-          body: formData,
-        }
-      );
+      // 🔥 USAMOS EL FETCH CON REINTENTO
+      const res = await fetchConReintento(formData);
 
       let data;
       try {
@@ -102,9 +137,11 @@ function App() {
     }
   };
 
+  // ===============================
+  // UI
+  // ===============================
   return (
     <div className="container">
-      {/* Logo */}
       <img
         src={logo}
         alt="Logo D&CO"
