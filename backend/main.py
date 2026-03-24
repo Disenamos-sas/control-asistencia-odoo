@@ -26,7 +26,7 @@ app.add_middleware(
 ODOO_URL = "https://disenamos-y-construimos-sas-1.odoo.com"
 ODOO_DB = "disenamos-y-construimos-sas-1"
 ODOO_USER = "alexandercanon9@gmail.com"
-ODOO_API_KEY = "d3eb31e5bd6c0ad9661e35e03f8b312a1d5ead44
+ODOO_API_KEY = "d3eb31e5bd6c0ad9661e35e03f8b312a1d5ead44"
 
 "
 
