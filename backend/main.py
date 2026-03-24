@@ -10,7 +10,7 @@ import hashlib
 # ===============================
 # CONFIGURACIÓN GENERAL
 # ===============================
-app = FastAPI()
+app = FastAPI(title="API Control D&CO", version="1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,17 +28,31 @@ ODOO_DB = "disenamos-y-construimos-sas-1"
 ODOO_USER = "alexandercanon9@gmail.com"
 ODOO_API_KEY = "d3eb31e5bd6c0ad9661e35e03f8b312a1d5ead44"
 
-
+# ===============================
+# CONEXIÓN ODOO
+# ===============================
 def get_odoo_connection():
     try:
         common = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/common")
         uid = common.authenticate(ODOO_DB, ODOO_USER, ODOO_API_KEY, {})
+
         if not uid:
-            raise Exception("Credenciales inválidas en Odoo")
+            raise HTTPException(
+                status_code=401,
+                detail="Credenciales inválidas en Odoo (validar API KEY)"
+            )
+
         models = xmlrpc.client.ServerProxy(f"{ODOO_URL}/xmlrpc/2/object")
         return uid, models
+
+    except HTTPException:
+        raise
+
     except Exception as e:
-        raise Exception(f"Error conexión Odoo: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Falla conexión Odoo: {str(e)}"
+        )
 
 # ===============================
 # ARCHIVO HASH (ANTI FRAUDE)
@@ -49,19 +63,33 @@ if not os.path.exists(HASH_FILE):
     with open(HASH_FILE, "w") as f:
         json.dump([], f)
 
+
 def validar_imagen_unica(base64_img):
-    hash_img = hashlib.md5(base64_img.encode()).hexdigest()
+    try:
+        hash_img = hashlib.md5(base64_img.encode()).hexdigest()
 
-    with open(HASH_FILE, "r") as f:
-        hashes = json.load(f)
+        with open(HASH_FILE, "r") as f:
+            hashes = json.load(f)
 
-    if hash_img in hashes:
-        raise HTTPException(status_code=400, detail="Imagen ya utilizada (posible fraude)")
+        if hash_img in hashes:
+            raise HTTPException(
+                status_code=400,
+                detail="Imagen duplicada detectada (control antifraude)"
+            )
 
-    hashes.append(hash_img)
+        hashes.append(hash_img)
 
-    with open(HASH_FILE, "w") as f:
-        json.dump(hashes, f)
+        with open(HASH_FILE, "w") as f:
+            json.dump(hashes, f)
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error validación antifraude: {str(e)}"
+        )
 
 # ===============================
 # REGISTRO EN ODOO
@@ -69,6 +97,7 @@ def validar_imagen_unica(base64_img):
 def registrar_asistencia_odoo(employee_doc, tipo, lat, lon, photo_base64):
     uid, models = get_odoo_connection()
 
+    # Buscar empleado
     empleados = models.execute_kw(
         ODOO_DB, uid, ODOO_API_KEY,
         'hr.employee', 'search_read',
@@ -77,47 +106,71 @@ def registrar_asistencia_odoo(employee_doc, tipo, lat, lon, photo_base64):
     )
 
     if not empleados:
-        raise Exception("Empleado no encontrado en Odoo")
+        raise HTTPException(
+            status_code=404,
+            detail="Empleado no encontrado en Odoo"
+        )
 
     employee_id = empleados[0]['id']
     ahora = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    if tipo == "entrada":
-        models.execute_kw(
-            ODOO_DB, uid, ODOO_API_KEY,
-            'hr.attendance', 'create',
-            [{
-                'employee_id': employee_id,
-                'check_in': ahora,
-                'x_latitude': lat,
-                'x_longitude': lon,
-                'x_studio_foto_de_asistencia': photo_base64
-            }]
+    try:
+        if tipo == "entrada":
+
+            models.execute_kw(
+                ODOO_DB, uid, ODOO_API_KEY,
+                'hr.attendance', 'create',
+                [{
+                    'employee_id': employee_id,
+                    'check_in': ahora,
+                    'x_latitude': lat,
+                    'x_longitude': lon,
+                    'x_studio_foto_de_asistencia': photo_base64
+                }]
+            )
+
+        elif tipo == "salida":
+
+            asistencias = models.execute_kw(
+                ODOO_DB, uid, ODOO_API_KEY,
+                'hr.attendance', 'search',
+                [[
+                    ['employee_id', '=', employee_id],
+                    ['check_out', '=', False]
+                ]]
+            )
+
+            if not asistencias:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No existe una entrada abierta para este empleado"
+                )
+
+            models.execute_kw(
+                ODOO_DB, uid, ODOO_API_KEY,
+                'hr.attendance', 'write',
+                [asistencias, {
+                    'check_out': ahora,
+                    'x_studio_latitud_de_salida': lat,
+                    'x_studio_longitud_de_salida': lon,
+                    'x_studio_foto_de_salida_2': photo_base64
+                }]
+            )
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Tipo inválido: use 'entrada' o 'salida'"
+            )
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error operativo en Odoo: {str(e)}"
         )
-
-    elif tipo == "salida":
-        asistencias = models.execute_kw(
-            ODOO_DB, uid, ODOO_API_KEY,
-            'hr.attendance', 'search',
-            [[['employee_id', '=', employee_id], ['check_out', '=', False]]]
-        )
-
-        if not asistencias:
-            raise Exception("No hay asistencia abierta para cerrar")
-
-        models.execute_kw(
-            ODOO_DB, uid, ODOO_API_KEY,
-            'hr.attendance', 'write',
-            [asistencias, {
-                'check_out': ahora,
-                'x_studio_latitud_de_salida': lat,
-                'x_studio_longitud_de_salida': lon,
-                'x_studio_foto_de_salida_2': photo_base64
-            }]
-        )
-
-    else:
-        raise Exception("Tipo inválido (entrada/salida)")
 
 # ===============================
 # ENDPOINT PRINCIPAL
@@ -131,17 +184,24 @@ async def registrar(
     photo: UploadFile = File(...)
 ):
     try:
+        # Validaciones básicas
+        if tipo.lower() not in ["entrada", "salida"]:
+            raise HTTPException(status_code=400, detail="Tipo inválido")
+
         contents = await photo.read()
 
         if not contents:
             raise HTTPException(status_code=400, detail="Imagen vacía")
 
+        # Convertir imagen
         photo_base64 = base64.b64encode(contents).decode("utf-8")
 
+        # Antifraude
         validar_imagen_unica(photo_base64)
 
+        # Registro en Odoo
         registrar_asistencia_odoo(
-            employee,
+            employee.strip(),
             tipo.lower(),
             float(lat),
             float(lon),
@@ -150,7 +210,7 @@ async def registrar(
 
         return {
             "status": "ok",
-            "mensaje": f"Asistencia {tipo} registrada correctamente para D&CO"
+            "mensaje": f"Asistencia {tipo.upper()} registrada correctamente"
         }
 
     except HTTPException as he:
@@ -159,7 +219,7 @@ async def registrar(
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error interno: {str(e)}"
+            detail=f"Error interno del sistema: {str(e)}"
         )
 
 # ===============================
@@ -167,4 +227,7 @@ async def registrar(
 # ===============================
 @app.get("/")
 def home():
-    return {"status": "ok", "mensaje": "API D&CO Activa"}
+    return {
+        "status": "ok",
+        "mensaje": "API D&CO Activa - Producción"
+    }
